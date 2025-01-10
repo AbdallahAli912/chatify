@@ -2,18 +2,21 @@
 
 namespace Chatify\Http\Controllers;
 
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Response;
-use Modules\User\Entities\User;
-use App\Models\ChMessage as Message;
-use App\Models\ChFavorite as Favorite;
-use Chatify\Facades\ChatifyMessenger as Chatify;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Request as FacadesRequest;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use Modules\User\Entities\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
+use App\Models\ChMessage as Message;
+use Illuminate\Support\Facades\Auth;
+use App\Models\ChFavorite as Favorite;
+use Modules\User\Enums\UserStatusEnum;
+use Illuminate\Support\Facades\Response;
+use Chatify\Facades\ChatifyMessenger as Chatify;
+use Illuminate\Support\Facades\Request as FacadesRequest;
+use Modules\User\Enums\UserTypeEnum;
+
 class MessagesController extends Controller
 {
     protected $perPage = 30;
@@ -222,7 +225,12 @@ class MessagesController extends Controller
     public function getContacts(Request $request)
     {
         // get all users that received/sent message from/to [Auth user]
-        $users = User::paginate($request->per_page ?? $this->perPage);
+        if(function_exists('getUsersForChat')){
+            $query = getUsersForChat();
+            $users = $query->paginate($request->per_page ?? $this->perPage);
+        }else{
+            $users = User::where('id','!=',auth()->user()->id)->where('status', UserStatusEnum::ACCEPTED)->paginate($request->per_page ?? $this->perPage);
+        }
 
         $usersList = $users->items();
         if (count($usersList) > 0) {
